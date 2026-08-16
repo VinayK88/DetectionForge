@@ -1,0 +1,86 @@
+{
+  "summary": {
+    "rules": 3,
+    "passing": 3,
+    "failing": 0,
+    "attack_techniques": 3
+  },
+  "rules": [
+    {
+      "rule_id": "df-endpoint-001",
+      "matched_event_ids": [
+        "p-b07",
+        "p-m01",
+        "p-m02",
+        "p-m03",
+        "p-m04",
+        "p-m05"
+      ],
+      "true_positives": 5,
+      "false_positives": 1,
+      "false_negatives": 1,
+      "true_negatives": 24,
+      "precision": 0.8333333333333334,
+      "recall": 0.8333333333333334,
+      "specificity": 0.96,
+      "false_positive_rate": 0.04,
+      "f1": 0.8333333333333334,
+      "gate_passed": true,
+      "gate_reasons": []
+    },
+    {
+      "rule_id": "df-entra-002",
+      "matched_event_ids": [
+        "i-b09",
+        "i-m01",
+        "i-m02",
+        "i-m03",
+        "i-m04"
+      ],
+      "true_positives": 4,
+      "false_positives": 1,
+      "false_negatives": 1,
+      "true_negatives": 19,
+      "precision": 0.8,
+      "recall": 0.8,
+      "specificity": 0.95,
+      "false_positive_rate": 0.05,
+      "f1": 0.8000000000000002,
+      "gate_passed": true,
+      "gate_reasons": []
+    },
+    {
+      "rule_id": "df-entra-001",
+      "matched_event_ids": [
+        "o-b04",
+        "o-m01",
+        "o-m02",
+        "o-m03",
+        "o-m04",
+        "o-m05"
+      ],
+      "true_positives": 5,
+      "false_positives": 1,
+      "false_negatives": 0,
+      "true_negatives": 19,
+      "precision": 0.8333333333333334,
+      "recall": 1.0,
+      "specificity": 0.95,
+      "false_positive_rate": 0.05,
+      "f1": 0.9090909090909091,
+      "gate_passed": true,
+      "gate_reasons": []
+    }
+  ],
+  "attack_coverage": {
+    "T1059.001": [
+      "df-endpoint-001"
+    ],
+    "T1078": [
+      "df-entra-002"
+    ],
+    "T1098.003": [
+      "df-entra-001"
+    ]
+  }
+}

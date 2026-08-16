@@ -1,0 +1,6 @@
+[
+  {"rule_id":"df-entra-001","event_id":"e001","disposition":"true_positive","reason":"unauthorized app"},
+  {"rule_id":"df-entra-001","event_id":"e004","disposition":"benign","reason":"approved security test"},
+  {"rule_id":"df-endpoint-001","event_id":"e101","disposition":"true_positive","reason":"malicious script"},
+  {"rule_id":"df-entra-002","event_id":"e201","disposition":"true_positive","reason":"account takeover"}
+]

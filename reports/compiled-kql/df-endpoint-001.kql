@@ -1,0 +1,5 @@
+// Encoded PowerShell With Suspicious Network Utility
+// DetectionForge rule_id=df-endpoint-001
+DeviceProcessEvents
+| where ((FileName endswith "powershell.exe") and (ProcessCommandLine contains "-enc" or ProcessCommandLine contains "-encodedcommand")) and ((ProcessCommandLine contains "Invoke-WebRequest" or ProcessCommandLine contains "curl" or ProcessCommandLine contains "DownloadString"))
+| project TimeGenerated, EventId, Account, DeviceName, ActionType, IPAddress, Application, CommandLine

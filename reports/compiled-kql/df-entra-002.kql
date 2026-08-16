@@ -1,0 +1,5 @@
+// High-Risk Identity Velocity From New Device
+// DetectionForge rule_id=df-entra-002
+SigninLogs
+| where (RiskLevel == "high") and (NewDevice == true) and (SensitiveAccess == true)
+| project TimeGenerated, EventId, Account, DeviceName, ActionType, IPAddress, Application, CommandLine

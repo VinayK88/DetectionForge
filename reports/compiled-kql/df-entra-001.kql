@@ -1,0 +1,5 @@
+// Suspicious High-Privilege OAuth Consent
+// DetectionForge rule_id=df-entra-001
+AuditLogs
+| where (ConsentType == "AllPrincipals") and (Permission contains "Mail.ReadWrite" or Permission contains "Files.ReadWrite.All") and (AppVerified == false)
+| project TimeGenerated, EventId, Account, DeviceName, ActionType, IPAddress, Application, CommandLine
