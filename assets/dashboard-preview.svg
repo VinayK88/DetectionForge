@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">DetectionForge dashboard preview</title>
+  <desc id="desc">Dark security engineering dashboard showing release metrics, three passing detection cards, and ATT&amp;CK coverage.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101f"/><stop offset="1" stop-color="#0a1627"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7182ff"/><stop offset="1" stop-color="#3dd9b2"/></linearGradient>
+    <style>
+      .t{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#edf3ff}.m{fill:#8d9ab0}.a{fill:#48dfbd}.panel{fill:#0e192b;stroke:#24324a}.line{stroke:#24324a}.k{font-size:12px;letter-spacing:2px}.h{font-weight:750}.small{font-size:13px}.tiny{font-size:11px}.num{font-size:27px;font-weight:800}
+    </style>
+  </defs>
+  <rect width="1200" height="720" rx="22" fill="url(#bg)"/>
+  <g transform="translate(64 42)">
+    <rect width="34" height="34" rx="9" fill="url(#accent)"/><text class="t h" x="10" y="23" font-size="12" fill="#07101f">DF</text>
+    <text class="t h" x="47" y="23" font-size="17">DetectionForge</text>
+    <text class="m small" x="820" y="22">Scorecard</text><text class="m small" x="900" y="22">ATT&amp;CK</text><text class="m small" x="985" y="22">Feedback</text>
+    <line x1="0" y1="55" x2="1072" y2="55" class="line"/>
+    <text class="a k h" x="0" y="100">DETECTION ENGINEERING · RELEASE QUALITY</text>
+    <text class="t h" x="0" y="146" font-size="38">Ship detections with evidence, not intuition.</text>
+    <text class="m" x="0" y="178" font-size="15">Versioned rules · KQL compilation · attack/benign replay · measurable release gates</text>
+    <g transform="translate(0 212)">
+      <g><rect class="panel" width="250" height="90" rx="14"/><text class="m tiny" x="18" y="25">RELEASE-READY RULES</text><text class="t num" x="18" y="59">3/3</text><text class="m tiny" x="18" y="76">synthetic regression gate</text></g>
+      <g transform="translate(268)"><rect class="panel" width="250" height="90" rx="14"/><text class="m tiny" x="18" y="25">MEAN PRECISION</text><text class="t num" x="18" y="59">82.2%</text><text class="m tiny" x="18" y="76">across current detections</text></g>
+      <g transform="translate(536)"><rect class="panel" width="250" height="90" rx="14"/><text class="m tiny" x="18" y="25">MEAN RECALL</text><text class="t num" x="18" y="59">87.8%</text><text class="m tiny" x="18" y="76">malicious replay fixtures</text></g>
+      <g transform="translate(804)"><rect class="panel" width="268" height="90" rx="14"/><text class="m tiny" x="18" y="25">ATT&amp;CK COVERAGE</text><text class="t num" x="18" y="59">3</text><text class="m tiny" x="18" y="76">mapped techniques</text></g>
+    </g>
+    <text class="a k h" x="0" y="344">DETECTION HEALTH</text><text class="t h" x="0" y="371" font-size="24">Release scorecard</text>
+    <g transform="translate(0 392)">
+      <rect class="panel" width="1072" height="82" rx="13"/><text class="m tiny" x="18" y="23">DF-ENDPOINT-001 · HIGH</text><text class="t h" x="18" y="48" font-size="16">Encoded PowerShell With Suspicious Network Utility</text>
+      <rect x="900" y="17" width="145" height="26" rx="13" fill="#10372f" stroke="#1f6858"/><text class="a tiny h" x="920" y="34">Release gate passed</text>
+      <text class="m tiny" x="440" y="24">PRECISION</text><text class="t h" x="440" y="48" font-size="17">83.3%</text><rect x="440" y="59" width="120" height="4" rx="2" fill="#23334e"/><rect x="440" y="59" width="100" height="4" rx="2" fill="url(#accent)"/>
+      <text class="m tiny" x="590" y="24">RECALL</text><text class="t h" x="590" y="48" font-size="17">83.3%</text><rect x="590" y="59" width="120" height="4" rx="2" fill="#23334e"/><rect x="590" y="59" width="100" height="4" rx="2" fill="url(#accent)"/>
+      <text class="m tiny" x="740" y="24">FPR</text><text class="t h" x="740" y="48" font-size="17">4.0%</text>
+    </g>
+    <g transform="translate(0 486)">
+      <rect class="panel" width="1072" height="82" rx="13"/><text class="m tiny" x="18" y="23">DF-ENTRA-002 · MEDIUM</text><text class="t h" x="18" y="48" font-size="16">High-Risk Identity Velocity From New Device</text>
+      <rect x="900" y="17" width="145" height="26" rx="13" fill="#10372f" stroke="#1f6858"/><text class="a tiny h" x="920" y="34">Release gate passed</text>
+      <text class="m tiny" x="440" y="24">PRECISION</text><text class="t h" x="440" y="48" font-size="17">80.0%</text><text class="m tiny" x="590" y="24">RECALL</text><text class="t h" x="590" y="48" font-size="17">80.0%</text><text class="m tiny" x="740" y="24">FPR</text><text class="t h" x="740" y="48" font-size="17">5.0%</text>
+    </g>
+    <g transform="translate(0 580)">
+      <rect class="panel" width="1072" height="82" rx="13"/><text class="m tiny" x="18" y="23">DF-ENTRA-001 · HIGH</text><text class="t h" x="18" y="48" font-size="16">Suspicious High-Privilege OAuth Consent</text>
+      <rect x="900" y="17" width="145" height="26" rx="13" fill="#10372f" stroke="#1f6858"/><text class="a tiny h" x="920" y="34">Release gate passed</text>
+      <text class="m tiny" x="440" y="24">PRECISION</text><text class="t h" x="440" y="48" font-size="17">83.3%</text><text class="m tiny" x="590" y="24">RECALL</text><text class="t h" x="590" y="48" font-size="17">100.0%</text><text class="m tiny" x="740" y="24">FPR</text><text class="t h" x="740" y="48" font-size="17">5.0%</text>
+    </g>
+  </g>
+</svg>
