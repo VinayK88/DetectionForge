@@ -2,68 +2,111 @@
 
 # DetectionForge
 
-### Detection engineering as code: author → compile → replay → measure → gate → improve
+### Production-minded detection engineering as code
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+**Author → compile → replay → measure → gate → improve**
+
 [![CI](https://github.com/VinayK88/DetectionForge/actions/workflows/ci.yml/badge.svg)](https://github.com/VinayK88/DetectionForge/actions/workflows/ci.yml)
-[![Detection](https://img.shields.io/badge/Detection-as--Code-7C3AED)](#why-this-project)
-[![Data](https://img.shields.io/badge/Data-synthetic%20only-0F766E)](#safety-boundary)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10--3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Detection as Code](https://img.shields.io/badge/Detection-as--Code-6C7CFF)](#what-detectionforge-does)
+[![ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK-E35B5B)](#attack-coverage)
+[![Data](https://img.shields.io/badge/Data-synthetic-16A085)](#evaluation-boundary)
 
-**Sigma-style rules · KQL compilation · attack/benign replay · regression gates · ATT&CK coverage · analyst feedback**
+DetectionForge answers a simple question that is easy to skip in security engineering:
+
+> **How do we know a detection change is actually safe to ship, rather than merely syntactically valid?**
 
 </div>
 
 ---
 
-DetectionForge is a defensive detection-engineering platform built around one operational question:
+![DetectionForge dashboard](assets/dashboard-preview.svg)
 
-> **How do we know a detection change is actually safer to ship—not merely syntactically valid?**
+DetectionForge treats security detections like production software. A rule has versioned logic, a stable ID, ATT&CK mapping, benign hard negatives, attack replay, measurable precision/recall/FPR, CI release gates, compiled KQL, and an analyst-feedback loop.
 
-A detection is treated like production code. It has a stable ID, version-controlled logic, tests, representative benign negatives, attack replay, measurable precision/recall/FPR, ATT&CK coverage, CI quality gates, and an analyst-feedback path.
+The goal is not to build another collection of queries. The goal is to demonstrate the **engineering lifecycle around a detection**.
 
-## Why this project
+## Baseline at a glance
 
-Many security portfolios show individual queries or anomaly models. DetectionForge demonstrates the **lifecycle around detections**:
+| Detection | Precision | Recall | False-positive rate | F1 | Gate |
+| --- | ---: | ---: | ---: | ---: | :---: |
+| Encoded PowerShell + suspicious network utility | **83.3%** | **83.3%** | **4.0%** | **83.3%** | ✅ |
+| High-risk identity velocity from new device | **80.0%** | **80.0%** | **5.0%** | **80.0%** | ✅ |
+| Suspicious high-privilege OAuth consent | **83.3%** | **100.0%** | **5.0%** | **90.9%** | ✅ |
+
+**Current release gate:** precision ≥ 80% · recall ≥ 80% · FPR ≤ 10%.
+
+The checked-in fixture contains **81 deterministic replay events** spanning endpoint, identity, and OAuth scenarios, including malicious behavior and deliberately confusing benign lookalikes.
+
+These are synthetic replay results, not production efficacy claims.
+
+## What DetectionForge does
 
 ```mermaid
 flowchart LR
-    H["Threat hypothesis"] --> R["Sigma-style rule"]
-    R --> V["Validate"]
-    V --> K["Compile to KQL"]
-    V --> P["Replay attack + benign telemetry"]
-    P --> M["Precision · Recall · FPR · F1"]
-    M --> G{"CI quality gate"}
-    G -->|pass| S["Shadow / staged deployment boundary"]
-    G -->|fail| T["Tune rule"]
-    S --> F["Analyst dispositions"]
+    H[Threat hypothesis] --> R[Versioned detection]
+    R --> V[Schema + rule validation]
+    V --> K[Compile to KQL]
+    V --> P[Replay malicious + benign telemetry]
+    P --> M[Precision · Recall · FPR · F1]
+    M --> G{Release gate}
+    G -->|Pass| D[Shadow / staged deployment boundary]
+    G -->|Fail| T[Tune rule]
+    D --> F[Analyst dispositions]
     F --> T
-    R --> A["ATT&CK coverage"]
+    R --> A[ATT&CK coverage]
 ```
 
-## What is implemented
+### Implemented today
 
-- Sigma-style YAML detection definitions with stable IDs and ATT&CK tags.
-- Validation for required metadata, supported selectors, duplicate IDs, and condition grammar.
-- A transparent **Sigma-subset → Microsoft KQL compiler**.
-- Deterministic synthetic telemetry across Entra identity/OAuth and endpoint process events.
-- Attack and benign-hard-negative replay against the exact same rule logic.
-- Per-rule precision, recall, specificity, false-positive rate, and F1.
-- Merge gate defaults: **precision ≥ 0.80, recall ≥ 0.80, FPR ≤ 0.10**.
-- ATT&CK technique coverage aggregation.
-- Analyst disposition summary separated from synthetic ground truth.
-- FastAPI/browser scorecard.
-- Docker and GitHub Actions across Python 3.10–3.12.
+- **Sigma-style YAML detections** with stable IDs, severity, ATT&CK tags, false-positive documentation, and log-source metadata.
+- **Rule validation** for required fields, supported selectors, duplicate IDs, and condition grammar.
+- **Transparent Sigma-subset → KQL compilation** so generated logic remains reviewable.
+- **Deterministic attack + benign replay** across endpoint and Entra-style telemetry.
+- **Regression metrics** for precision, recall, specificity, FPR, F1, TP/FP/FN/TN, and matched event IDs.
+- **CI release gating** across Python 3.10, 3.11, and 3.12.
+- **ATT&CK coverage reporting** for T1059.001, T1078, and T1098.003.
+- **Analyst-feedback summaries** kept separate from synthetic ground truth.
+- **FastAPI scorecard** with rule health, ATT&CK coverage, benign-lookalike context, analyst feedback, JSON endpoints, and OpenAPI docs.
+- **Docker + CLI workflows** for local review and reproducibility.
 
-## Included detection stories
+## Detection stories
 
-| Rule | Surface | ATT&CK | Primary false-positive challenge |
+| Rule | Security surface | ATT&CK | Hard negative intentionally included |
 | --- | --- | --- | --- |
-| Suspicious high-privilege OAuth consent | Entra / OAuth | T1098.003 | Authorized security testing / onboarding |
-| Encoded PowerShell + network utility | Endpoint | T1059.001 | Administrative automation |
-| High-risk identity velocity from new device | Entra sign-in | T1078 | Approved travel / device enrollment |
+| **Suspicious high-privilege OAuth consent** | Entra / OAuth | `T1098.003` | Approved internal app onboarding and authorized security testing |
+| **Encoded PowerShell with suspicious network utility** | Endpoint | `T1059.001` | Legitimate administrative automation using encoded PowerShell |
+| **High-risk identity velocity from new device** | Entra sign-in | `T1078` | Approved travel from a newly enrolled device |
 
-The fixture includes both malicious cases and deliberate benign lookalikes so the release gate cannot pass by simply alerting on everything.
+The hard negatives matter: a rule cannot pass simply by alerting on everything suspicious-looking.
+
+## Dashboard
+
+Run the FastAPI app and the root page becomes an analyst/reviewer scorecard rather than a raw API landing page.
+
+It surfaces:
+
+- release-ready rule count
+- mean precision and recall
+- ATT&CK technique coverage
+- per-rule precision / recall / FPR / F1
+- pass/fail release state
+- documented benign lookalikes
+- compiled-KQL links
+- analyst-review precision and benign reasons
+- explicit synthetic-data boundary
+
+```bash
+uvicorn detectionforge.api:app --reload
+```
+
+Open `http://127.0.0.1:8000` for the dashboard or `http://127.0.0.1:8000/docs` for OpenAPI.
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/healthz
+```
 
 ## Quick start
 
@@ -76,39 +119,29 @@ source .venv/bin/activate
 pip install -e '.[api]'
 ```
 
-Validate every rule:
+Then exercise the lifecycle directly:
 
 ```bash
+# Validate every detection
 detectionforge validate
-```
 
-Compile one rule to KQL:
+# Run the regression suite
+detectionforge evaluate --output reports/local-evaluation.json
 
-```bash
+# Review ATT&CK coverage
+detectionforge coverage
+
+# Compile one detection to KQL
 detectionforge compile-kql detections/suspicious_oauth_consent.yml
 ```
 
-Run the detection regression suite:
+Run tests:
 
 ```bash
-detectionforge evaluate --output reports/local-evaluation.json
+python -m unittest discover -s tests -v
 ```
 
-View ATT&CK coverage:
-
-```bash
-detectionforge coverage
-```
-
-Start the browser/API demo:
-
-```bash
-uvicorn detectionforge.api:app --reload
-```
-
-Then open `http://127.0.0.1:8000` or `/docs`.
-
-## Example PR quality gate
+## Example release decision
 
 ```text
 Detection: Suspicious High-Privilege OAuth Consent
@@ -122,19 +155,11 @@ ATT&CK                 T1098.003
 RELEASE GATE: PASS
 ```
 
-The checked-in baseline is generated from `data/telemetry.jsonl` and is regression-tested in CI.
-
-| Rule ID | Precision | Recall | FPR | F1 | Gate |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `df-endpoint-001` | 83.3% | 83.3% | 4.0% | 83.3% | PASS |
-| `df-entra-002` | 80.0% | 80.0% | 5.0% | 80.0% | PASS |
-| `df-entra-001` | 83.3% | 100.0% | 5.0% | 90.9% | PASS |
-
-These are synthetic replay measurements, not production detection-effectiveness claims.
+A regression below the configured precision or recall threshold—or above the allowed false-positive rate—fails the gate instead of silently shipping a noisier rule.
 
 ## KQL compilation
 
-Example rule fragment:
+Example source definition:
 
 ```yaml
 detection:
@@ -147,15 +172,25 @@ detection:
   condition: selection
 ```
 
-DetectionForge compiles the supported subset into a reviewable KQL predicate and writes compiled queries under `reports/compiled-kql/`.
+The supported subset compiles into reviewable KQL and generated examples are stored under `reports/compiled-kql/`.
 
-This is intentionally **not** a claim of full Sigma compatibility. The project focuses on detection lifecycle methodology. A production backend should use maintained upstream Sigma tooling for broad syntax support while keeping these replay and regression gates around the generated query.
+This project deliberately does **not** claim full Sigma compatibility. In a production implementation, broad parsing should be delegated to maintained upstream Sigma tooling while DetectionForge retains the replay, regression, quality-gate, and deployment-control layers.
 
-## Analyst feedback loop
+## ATT&CK coverage
 
-Synthetic benchmark quality and production analyst feedback are different evidence sources. DetectionForge keeps them separate.
+| Technique | Detection |
+| --- | --- |
+| `T1059.001` | `df-endpoint-001` |
+| `T1078` | `df-entra-002` |
+| `T1098.003` | `df-entra-001` |
 
-`data/analyst_feedback.json` demonstrates dispositions such as:
+Coverage is generated from rule metadata rather than maintained as a separate manual spreadsheet.
+
+## Analyst feedback without label leakage
+
+Offline labels and production analyst dispositions answer different questions, so DetectionForge keeps them separate.
+
+The checked-in feedback fixture demonstrates:
 
 ```text
 true_positive
@@ -163,50 +198,54 @@ benign
 unknown
 ```
 
-The feedback summarizer reports analyst precision and the most common benign reasons, which can drive rule tuning without silently rewriting the offline benchmark.
+The feedback layer calculates reviewed volume, analyst precision, and recurring benign reasons. That creates a tuning signal without rewriting the benchmark ground truth after the fact.
 
-## Repository map
+## Repository structure
 
 ```text
-detectionforge/
-  rules.py          rule loading, validation, matching
-  compiler.py       supported Sigma-subset → KQL
-  replay.py         deterministic attack/benign replay
-  coverage.py       ATT&CK coverage
-  feedback.py       analyst disposition summaries
-  report.py         machine-readable evaluation report
-  api.py            FastAPI + browser scorecard
-  cli.py            command-line workflow
-
-detections/         version-controlled detection rules
-data/               synthetic telemetry + analyst feedback fixtures
-scripts/            baseline and KQL export helpers
-tests/              rule/compiler/replay/feedback regression tests
-reports/            reproducible generated evidence
-docs/               architecture and operational boundary
-.github/workflows/  CI release gate
+DetectionForge/
+├── detectionforge/
+│   ├── rules.py          # rule loading, validation, matching
+│   ├── compiler.py       # supported Sigma-subset → KQL
+│   ├── replay.py         # attack / benign replay + metrics
+│   ├── coverage.py       # ATT&CK coverage
+│   ├── feedback.py       # analyst-disposition summaries
+│   ├── report.py         # machine-readable evaluation report
+│   ├── api.py            # dashboard + JSON/OpenAPI endpoints
+│   └── cli.py            # command-line workflow
+├── detections/           # version-controlled detections
+├── data/                 # synthetic telemetry + feedback fixtures
+├── reports/              # baseline evidence + compiled KQL
+├── tests/                # regression + dashboard tests
+├── docs/                 # architecture / operational boundary
+├── scripts/              # baseline and export helpers
+└── .github/workflows/    # detection quality gate
 ```
 
 ## Production evolution
 
-The next production-oriented extensions are intentionally different from simply adding more rules:
+The next useful steps are operational rather than “add more rules”:
 
-1. Delegate full Sigma parsing/compilation to maintained Sigma tooling while retaining DetectionForge regression tests.
-2. Add Microsoft Sentinel / Defender and Splunk deployment adapters with **dry-run, shadow, approval, version and rollback controls**.
-3. Replay time-bounded historical telemetry and estimate alerts/day at analyst-capacity thresholds.
-4. Add schema/data-quality gates so missing fields cannot silently look like improved false-positive performance.
-5. Add detection drift monitoring, rule ownership, review SLAs and stale-rule detection.
-6. Link rule changes to analyst dispositions and measure before/after precision at equal review volume.
-7. Add OCSF/ECS field mappings and a telemetry dependency graph for every detection.
+1. Use maintained Sigma tooling for full parser/backend coverage while preserving DetectionForge's regression gates.
+2. Add Microsoft Sentinel / Defender and Splunk deployment adapters with dry-run, shadow, approval, version, and rollback controls.
+3. Replay bounded historical telemetry and estimate alerts/day against analyst capacity.
+4. Add schema and data-quality checks so missing fields cannot masquerade as better precision.
+5. Track detection drift, ownership, review SLA, stale rules, and telemetry dependencies.
+6. Compare pre/post-change analyst precision at equal review volume.
+7. Add OCSF/ECS field mappings and telemetry lineage for each rule.
 
-## Safety boundary
+## Evaluation boundary
 
-All checked-in events, identities, applications, commands, URLs and labels are synthetic. DetectionForge does not exploit systems, execute malware, collect credentials, or autonomously deploy production security controls.
+All checked-in telemetry, identities, applications, commands, URLs, and labels are synthetic. DetectionForge does not execute malware, collect credentials, exploit systems, or autonomously deploy production controls.
 
-Production use should require authorized telemetry, privacy review, target-schema validation, staged deployment, analyst approval and rollback.
+Production use should require authorized telemetry, privacy review, schema validation, staged deployment, human approval, and rollback.
 
 See [SECURITY.md](SECURITY.md) and [architecture notes](docs/architecture.md).
 
-## License
+---
 
-MIT.
+<div align="center">
+
+**Detection engineering should be measurable before it becomes operational.**
+
+</div>
