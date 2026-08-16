@@ -1,0 +1,22 @@
+title: Suspicious High-Privilege OAuth Consent
+id: df-entra-001
+status: experimental
+description: Detects consent to high-impact delegated permissions from unverified applications.
+logsource:
+  product: entra
+  category: oauth_consent
+  table: AuditLogs
+level: high
+tags:
+  - attack.t1098.003
+falsepositives:
+  - Approved internal applications during onboarding
+  - Security testing in an authorized tenant
+detection:
+  selection:
+    ConsentType: AllPrincipals
+    Permission|contains:
+      - Mail.ReadWrite
+      - Files.ReadWrite.All
+    AppVerified: false
+  condition: selection

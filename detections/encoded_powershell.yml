@@ -1,0 +1,25 @@
+title: Encoded PowerShell With Suspicious Network Utility
+id: df-endpoint-001
+status: experimental
+description: Detects encoded PowerShell combined with a network-capable utility or download primitive.
+logsource:
+  product: endpoint
+  category: process_creation
+  table: DeviceProcessEvents
+level: high
+tags:
+  - attack.t1059.001
+falsepositives:
+  - Rare administrative automation that legitimately uses encoded PowerShell
+detection:
+  selection_shell:
+    FileName|endswith: powershell.exe
+    ProcessCommandLine|contains:
+      - -enc
+      - -encodedcommand
+  selection_network:
+    ProcessCommandLine|contains:
+      - Invoke-WebRequest
+      - curl
+      - DownloadString
+  condition: selection_shell and selection_network

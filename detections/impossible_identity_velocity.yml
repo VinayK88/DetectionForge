@@ -1,0 +1,19 @@
+title: High-Risk Identity Velocity From New Device
+id: df-entra-002
+status: experimental
+description: Detects a risky sign-in from a new device followed by sensitive access in the normalized sign-in event.
+logsource:
+  product: entra
+  category: authentication
+  table: SigninLogs
+level: medium
+tags:
+  - attack.t1078
+falsepositives:
+  - Approved travel with a newly enrolled device
+detection:
+  selection:
+    RiskLevel: high
+    NewDevice: true
+    SensitiveAccess: true
+  condition: selection
