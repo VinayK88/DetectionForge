@@ -29,68 +29,65 @@ def _pct(value: float) -> str:
     return f"{value * 100:.1f}%"
 
 
-def _surface(rule) -> str:
-    product = str(rule.logsource.get("product", "unknown"))
-    category = str(rule.logsource.get("category", "events"))
-    return f"{product} / {category}"
-
-
-def _metric_bar(value: float, *, inverse: bool = False) -> str:
-    score = (1 - value if inverse else value) * 100
-    width = max(0.0, min(score, 100.0))
-    return f'<div class="meter"><span style="width:{width:.1f}%"></span></div>'
+def _metric(value: float, inverse: bool = False) -> str:
+    width = (1 - value if inverse else value) * 100
+    width = max(0.0, min(width, 100.0))
+    return f'<div class="meter"><i style="width:{width:.1f}%"></i></div>'
 
 
 def _rule_card(rule, run) -> str:
-    gate_class = "pass" if run.gate_passed else "fail"
-    gate_text = "Release gate passed" if run.gate_passed else "Release gate failed"
-    techniques = "".join(
-        f'<span class="chip attack">{escape(technique)}</span>' for technique in rule.attack_techniques
-    ) or '<span class="chip muted">No ATT&amp;CK tag</span>'
-
-    false_positive_text = ", ".join(rule.falsepositives[:2]) if rule.falsepositives else "No examples documented"
+    state = "pass" if run.gate_passed else "fail"
+    techniques = " ".join(
+        f'<span class="chip">{escape(item)}</span>' for item in rule.attack_techniques
+    )
+    lookalikes = ", ".join(rule.falsepositives[:2]) or "No examples documented"
+    surface = f"{rule.logsource.get('product', 'unknown')} / {rule.logsource.get('category', 'events')}"
     return f"""
-    <article class="rule-card" data-gate="{gate_class}" data-surface="{escape(str(rule.logsource.get('product', 'unknown')))}">
-      <div class="rule-head">
-        <div>
-          <div class="eyebrow">{escape(rule.id)} · {escape(rule.level.upper())}</div>
-          <h3>{escape(rule.title)}</h3>
-          <p class="surface">{escape(_surface(rule))}</p>
-        </div>
-        <span class="status {gate_class}">{gate_text}</span>
+    <article class="rule">
+      <div class="rule-top">
+        <div><small>{escape(rule.id)} · {escape(rule.level.upper())}</small><h3>{escape(rule.title)}</h3><p>{escape(surface)}</p></div>
+        <span class="status {state}">{'Release gate passed' if run.gate_passed else 'Release gate failed'}</span>
       </div>
-      <div class="rule-metrics">
-        <div><span>Precision</span><strong>{_pct(run.precision)}</strong>{_metric_bar(run.precision)}</div>
-        <div><span>Recall</span><strong>{_pct(run.recall)}</strong>{_metric_bar(run.recall)}</div>
-        <div><span>False-positive rate</span><strong>{_pct(run.false_positive_rate)}</strong>{_metric_bar(run.false_positive_rate, inverse=True)}</div>
-        <div><span>F1</span><strong>{_pct(run.f1)}</strong>{_metric_bar(run.f1)}</div>
+      <div class="metrics">
+        <div><label>Precision</label><b>{_pct(run.precision)}</b>{_metric(run.precision)}</div>
+        <div><label>Recall</label><b>{_pct(run.recall)}</b>{_metric(run.recall)}</div>
+        <div><label>False-positive rate</label><b>{_pct(run.false_positive_rate)}</b>{_metric(run.false_positive_rate, True)}</div>
+        <div><label>F1</label><b>{_pct(run.f1)}</b>{_metric(run.f1)}</div>
       </div>
-      <div class="rule-foot">
-        <div><span class="label">Coverage</span>{techniques}</div>
-        <div><span class="label">Benign lookalikes</span><span>{escape(false_positive_text)}</span></div>
-        <div class="actions"><a href="/compile/{escape(rule.id)}">View compiled KQL</a></div>
-      </div>
-    </article>
-    """
+      <div class="rule-bottom"><div><label>ATT&amp;CK</label>{techniques}</div><div><label>Benign lookalikes</label>{escape(lookalikes)}</div><a href="/compile/{escape(rule.id)}">Compiled KQL →</a></div>
+    </article>"""
 
 
 def _feedback_rows() -> str:
-    rows: list[str] = []
+    rows = []
     for rule in RULES:
         summary = summarize_feedback(FEEDBACK_PATH, rule.id)
-        precision = "—" if summary.analyst_precision is None else _pct(summary.analyst_precision)
+        analyst_precision = "—" if summary.analyst_precision is None else _pct(summary.analyst_precision)
         reasons = ", ".join(reason for reason, _ in summary.common_benign_reasons) or "—"
         rows.append(
-            "<tr>"
-            f"<td><strong>{escape(rule.title)}</strong><br><span class='mono'>{escape(rule.id)}</span></td>"
-            f"<td>{summary.reviewed}</td>"
-            f"<td>{summary.true_positive}</td>"
-            f"<td>{summary.benign}</td>"
-            f"<td>{precision}</td>"
-            f"<td>{escape(reasons)}</td>"
-            "</tr>"
+            f"<tr><td><b>{escape(rule.title)}</b><small>{escape(rule.id)}</small></td>"
+            f"<td>{summary.reviewed}</td><td>{summary.true_positive}</td><td>{summary.benign}</td>"
+            f"<td>{analyst_precision}</td><td>{escape(reasons)}</td></tr>"
         )
     return "".join(rows)
+
+
+HTML_TEMPLATE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DetectionForge · Detection Engineering Scorecard</title>
+<style>
+:root{--bg:#07101f;--panel:#0d1829;--line:#22314a;--text:#edf3ff;--muted:#94a3ba;--accent:#7182ff;--green:#42d8b4;--red:#ff7180;--yellow:#f2bd54}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#07101f,#091422 65%,#07101d);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:#b1bbff;text-decoration:none}.wrap{max-width:1180px;margin:auto;padding:0 26px 54px}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:11px;font-weight:800}.mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--green));color:#07101f}.links{display:flex;gap:20px;font-size:13px}.hero{display:grid;grid-template-columns:1.4fr .6fr;gap:28px;padding:52px 0 32px}.eyebrow{color:var(--green);font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.hero h1{font-size:58px;line-height:1;letter-spacing:-.05em;margin:10px 0 18px}.hero p{max-width:720px;color:#b5c0d4;font-size:17px;line-height:1.65}.workflow,.card,.rule,.panel{background:var(--panel);border:1px solid var(--line);border-radius:17px}.workflow{padding:22px}.flow{margin-top:14px;display:grid;gap:8px}.flow span{border:1px solid var(--line);background:#091525;padding:9px 11px;border-radius:9px;color:#bac6d9;font-size:12px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:42px}.card{padding:18px}.card label,.metrics label,.rule-bottom label{display:block;color:#75859f;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.card b{display:block;font-size:28px;margin:7px 0 3px}.card small{color:#687891}.section{margin-top:42px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:16px}.section h2{margin:4px 0 0;font-size:26px}.section-head p{color:var(--muted);font-size:13px;max-width:520px}.rules{display:grid;gap:15px}.rule{padding:20px}.rule-top{display:flex;justify-content:space-between;gap:16px}.rule-top small{color:#71819c;font-size:10px;letter-spacing:.08em}.rule h3{margin:5px 0;font-size:19px}.rule p{margin:0;color:var(--muted);font-size:12px}.status{font-size:11px;font-weight:800;border-radius:999px;padding:7px 10px;height:max-content}.pass{background:#10362f;color:#6ee4c7;border:1px solid #205d50}.fail{background:#3a1920;color:#ff9aa5;border:1px solid #67303a}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin:19px 0;padding:17px 0;border-top:1px solid #1d2b42;border-bottom:1px solid #1d2b42}.metrics b{display:block;font-size:21px;margin:4px 0 7px}.meter{height:4px;border-radius:9px;background:#1d2b42;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--green))}.rule-bottom{display:grid;grid-template-columns:1fr 1.6fr auto;gap:18px;align-items:center;color:#aebbd0;font-size:12px}.chip{display:inline-block;background:#12303a;color:#68dcc2;border:1px solid #21505b;border-radius:7px;padding:4px 7px;margin:5px 4px 0 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{padding:20px}.coverage-row{display:grid;grid-template-columns:110px 110px 1fr;gap:12px;padding:11px 0;border-bottom:1px solid #1d2b42;color:#aab8cc;font-size:12px}.coverage-row:last-child{border:0}.tech{color:#65dbc2;font-weight:800}.table{overflow-x:auto;border:1px solid var(--line);border-radius:15px}table{width:100%;border-collapse:collapse;background:var(--panel)}th,td{text-align:left;padding:12px;border-bottom:1px solid #1d2b42;font-size:12px}th{background:#091525;color:#74849d;font-size:9px;letter-spacing:.07em;text-transform:uppercase}td{color:#b6c2d4}td small{display:block;color:#71819b;margin-top:3px}.boundary{border-left:3px solid var(--yellow);background:rgba(242,189,84,.05);padding:14px 16px;border-radius:0 11px 11px 0;color:#b7c3d5;font-size:13px;line-height:1.6}.footer{margin-top:42px;border-top:1px solid var(--line);padding-top:20px;color:#66768f;font-size:11px;display:flex;justify-content:space-between}.footer a{margin-left:12px}@media(max-width:850px){.hero,.two{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.metrics{grid-template-columns:repeat(2,1fr)}.rule-bottom{grid-template-columns:1fr}.links{display:none}}@media(max-width:520px){.wrap{padding:0 16px 40px}.hero h1{font-size:42px}.kpis{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<header class="nav"><div class="brand"><span class="mark">DF</span>DetectionForge</div><nav class="links"><a href="#scorecard">Scorecard</a><a href="#coverage">ATT&amp;CK</a><a href="#feedback">Feedback</a><a href="/docs">API docs</a></nav></header>
+<section class="hero"><div><div class="eyebrow">Detection engineering · release quality</div><h1>Ship detections with evidence, not intuition.</h1><p>Versioned detections are compiled, replayed against malicious and benign lookalikes, measured, gated in CI, mapped to ATT&amp;CK, and improved with analyst dispositions.</p></div><aside class="workflow"><div class="eyebrow">Release workflow</div><div class="flow"><span>01 · Author Sigma-style rule</span><span>02 · Compile to reviewable KQL</span><span>03 · Replay attack + benign telemetry</span><span>04 · Gate on precision / recall / FPR</span><span>05 · Feed analyst dispositions back</span></div></aside></section>
+<section class="kpis"><div class="card"><label>Release-ready rules</label><b>__PASSING__/__RULE_COUNT__</b><small>current regression gate</small></div><div class="card"><label>Mean precision</label><b>__AVG_PRECISION__</b><small>across checked-in rules</small></div><div class="card"><label>Mean recall</label><b>__AVG_RECALL__</b><small>malicious replay fixtures</small></div><div class="card"><label>ATT&amp;CK coverage</label><b>__COVERAGE_COUNT__</b><small>mapped techniques</small></div></section>
+<section class="section" id="scorecard"><div class="section-head"><div><div class="eyebrow">Detection health</div><h2>Release scorecard</h2></div><p>__EVENT_COUNT__ deterministic replay events: __MALICIOUS__ malicious and __BENIGN__ benign / hard-negative events.</p></div><div class="rules">__RULE_CARDS__</div></section>
+<section class="section two" id="coverage"><div class="panel"><div class="eyebrow">Coverage</div><h2>MITRE ATT&amp;CK map</h2>__COVERAGE_ROWS__</div><div class="panel"><div class="eyebrow">Quality gate</div><h2>What blocks a release?</h2><div class="coverage-row"><span>Precision</span><b>≥ 80%</b><span>controls analyst noise</span></div><div class="coverage-row"><span>Recall</span><b>≥ 80%</b><span>protects malicious replay</span></div><div class="coverage-row"><span>FPR</span><b>≤ 10%</b><span>guards benign hard negatives</span></div><div class="coverage-row"><span>CI</span><b>3.10–3.12</b><span>test · validate · evaluate · compile</span></div></div></section>
+<section class="section" id="feedback"><div class="section-head"><div><div class="eyebrow">Operational loop</div><h2>Analyst feedback</h2></div><p>Human dispositions stay separate from synthetic ground truth so tuning does not contaminate the offline benchmark.</p></div><div class="table"><table><thead><tr><th>Detection</th><th>Reviewed</th><th>TP</th><th>Benign</th><th>Analyst precision</th><th>Common benign reason</th></tr></thead><tbody>__FEEDBACK_ROWS__</tbody></table></div></section>
+<section class="section"><div class="boundary"><b>Evaluation boundary.</b> All checked-in telemetry, identities, applications, commands, URLs, and labels are synthetic. These metrics demonstrate detection-engineering methodology and regression behavior; they are not production efficacy claims.</div></section>
+<footer class="footer"><span>DetectionForge · detection engineering as code</span><span><a href="/rules">JSON scorecard</a><a href="/coverage">coverage API</a><a href="/docs">OpenAPI</a></span></footer>
+</div></body></html>"""
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,134 +101,28 @@ def home() -> str:
     avg_recall = sum(run.recall for run in runs) / len(runs) if runs else 0.0
 
     rule_cards = "".join(_rule_card(rule, run) for rule, run in zip(RULES, runs))
-    attack_rows = "".join(
-        f"<div class='coverage-row'><span class='technique'>{escape(technique)}</span>"
-        f"<span>{len(rule_ids)} detection{'s' if len(rule_ids) != 1 else ''}</span>"
-        f"<span class='mono'>{escape(', '.join(rule_ids))}</span></div>"
+    coverage_rows = "".join(
+        f'<div class="coverage-row"><span class="tech">{escape(technique)}</span><span>{len(rule_ids)} detection</span><span>{escape(", ".join(rule_ids))}</span></div>'
         for technique, rule_ids in coverage.items()
     )
 
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DetectionForge · Detection Engineering Scorecard</title>
-<style>
-:root {{
-  --bg:#07101f; --panel:#0d1728; --panel2:#111d31; --line:#24324a; --text:#edf3ff;
-  --muted:#9eabc1; --accent:#7c8cff; --accent2:#3dd9b2; --warn:#f2b84b; --bad:#ff6b7a;
-}}
-*{{box-sizing:border-box}} body{{margin:0;background:linear-gradient(180deg,#07101f 0%,#091321 48%,#08101c 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}
-a{{color:#aeb8ff;text-decoration:none}} a:hover{{text-decoration:underline}}
-.shell{{max-width:1220px;margin:0 auto;padding:0 28px 60px}}
-.topbar{{display:flex;justify-content:space-between;align-items:center;padding:22px 0;border-bottom:1px solid var(--line)}}
-.brand{{display:flex;gap:12px;align-items:center;font-weight:800;letter-spacing:-.02em}} .mark{{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#7587ff,#3dd9b2);color:#07101f;font-weight:950}}
-.nav{{display:flex;gap:22px;font-size:14px;color:var(--muted)}} .nav a{{color:var(--muted)}}
-.hero{{display:grid;grid-template-columns:1.35fr .65fr;gap:28px;align-items:stretch;padding:54px 0 34px}}
-.hero h1{{font-size:clamp(40px,6vw,72px);line-height:.98;letter-spacing:-.055em;margin:10px 0 20px;max-width:780px}}
-.hero p{{font-size:18px;line-height:1.65;color:#b8c4d8;max-width:760px}}
-.kicker{{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--accent2);font-weight:800}}
-.hero-panel{{background:radial-gradient(circle at top right,rgba(124,140,255,.23),transparent 42%),var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;justify-content:space-between}}
-.pipeline{{display:grid;gap:9px;margin-top:16px}} .pipe{{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#0a1424;color:#c9d4e7;font-size:13px}} .arrow{{text-align:center;color:#596982;height:8px}}
-.grid4{{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:10px 0 38px}} .kpi{{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}} .kpi span{{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}} .kpi strong{{display:block;font-size:30px;margin-top:8px;letter-spacing:-.04em}} .kpi small{{display:block;color:#77869e;margin-top:5px}}
-.section{{margin-top:44px}} .section-head{{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:18px}} .section h2{{font-size:26px;letter-spacing:-.03em;margin:0}} .section-head p{{color:var(--muted);margin:0;max-width:570px;font-size:14px;line-height:1.5}}
-.toolbar{{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}} button.filter{{border:1px solid var(--line);background:#0b1626;color:#aebbd1;padding:8px 12px;border-radius:999px;cursor:pointer}} button.filter.active{{background:#202c58;color:white;border-color:#6878e8}}
-.rules{{display:grid;gap:16px}} .rule-card{{background:linear-gradient(180deg,#0e192b,#0b1525);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 14px 40px rgba(0,0,0,.12)}}
-.rule-head{{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}} .rule-head h3{{margin:5px 0;font-size:20px;letter-spacing:-.02em}} .eyebrow{{font-size:11px;color:#7f90ad;text-transform:uppercase;letter-spacing:.11em}} .surface{{color:var(--muted);font-size:13px;margin:0}}
-.status{{font-size:12px;font-weight:800;padding:7px 10px;border-radius:999px;white-space:nowrap}} .status.pass{{background:rgba(61,217,178,.12);color:#68e4c5;border:1px solid rgba(61,217,178,.28)}} .status.fail{{background:rgba(255,107,122,.12);color:#ff8b98;border:1px solid rgba(255,107,122,.28)}}
-.rule-metrics{{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin:22px 0 20px;padding:18px 0;border-top:1px solid #1c2940;border-bottom:1px solid #1c2940}} .rule-metrics span{{display:block;color:var(--muted);font-size:12px}} .rule-metrics strong{{font-size:22px;display:block;margin:4px 0 8px}}
-.meter{{height:5px;background:#1c2940;border-radius:20px;overflow:hidden}} .meter span{{display:block;height:100%;background:linear-gradient(90deg,#697cff,#41d3b1);border-radius:20px}}
-.rule-foot{{display:grid;grid-template-columns:1fr 1.5fr auto;gap:18px;align-items:center;color:#aab7ca;font-size:13px}} .label{{display:block;color:#6f7f99;font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}} .chip{{display:inline-flex;padding:5px 8px;border-radius:8px;margin-right:5px;font-size:11px}} .chip.attack{{background:#172c3c;color:#77e1cb;border:1px solid #22485a}} .chip.muted{{background:#162033;color:#8da0bb}}
-.actions a{{display:inline-flex;border:1px solid #33425f;padding:8px 11px;border-radius:9px}}
-.two-col{{display:grid;grid-template-columns:1fr 1fr;gap:18px}} .panel{{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px}} .panel h3{{margin-top:0}}
-.coverage-row{{display:grid;grid-template-columns:110px 120px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #1d2a40;font-size:13px;color:#aebbd0}} .coverage-row:last-child{{border-bottom:0}} .technique{{font-weight:800;color:#79ddc7}}
-.table-wrap{{overflow-x:auto;border:1px solid var(--line);border-radius:16px}} table{{border-collapse:collapse;width:100%;background:var(--panel)}} th,td{{padding:13px 14px;border-bottom:1px solid #1d2a40;text-align:left;font-size:13px}} th{{color:#8090a9;font-size:10px;text-transform:uppercase;letter-spacing:.08em;background:#0a1423}} td{{color:#bcc8da}} tr:last-child td{{border-bottom:0}} .mono{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#8191ab}}
-.boundary{{border-left:3px solid var(--warn);padding:14px 18px;background:rgba(242,184,75,.05);border-radius:0 12px 12px 0;color:#b9c5d7;line-height:1.6;font-size:14px}}
-.footer{{border-top:1px solid var(--line);margin-top:50px;padding-top:22px;display:flex;justify-content:space-between;gap:20px;color:#6e7e97;font-size:12px}}
-@media(max-width:900px){{.hero,.two-col{{grid-template-columns:1fr}}.grid4{{grid-template-columns:repeat(2,1fr)}}.rule-metrics{{grid-template-columns:repeat(2,1fr)}}.rule-foot{{grid-template-columns:1fr}}.nav{{display:none}}}}
-@media(max-width:560px){{.shell{{padding:0 16px 40px}}.grid4{{grid-template-columns:1fr}}.hero{{padding-top:36px}}.hero h1{{font-size:44px}}}}
-</style>
-</head>
-<body>
-<div class="shell">
-  <header class="topbar">
-    <div class="brand"><span class="mark">DF</span><span>DetectionForge</span></div>
-    <nav class="nav"><a href="#scorecard">Scorecard</a><a href="#coverage">ATT&amp;CK</a><a href="#feedback">Feedback</a><a href="/docs">API docs</a></nav>
-  </header>
-
-  <section class="hero">
-    <div>
-      <div class="kicker">Detection engineering · release quality</div>
-      <h1>Ship detections with evidence, not intuition.</h1>
-      <p>DetectionForge treats security detections like production code: versioned rules are compiled, replayed against malicious and benign lookalikes, measured, gated in CI, mapped to ATT&amp;CK, and improved with analyst dispositions.</p>
-    </div>
-    <aside class="hero-panel">
-      <div>
-        <div class="kicker">Release workflow</div>
-        <div class="pipeline">
-          <div class="pipe">01 · Author Sigma-style detection</div><div class="arrow">↓</div>
-          <div class="pipe">02 · Compile to reviewable KQL</div><div class="arrow">↓</div>
-          <div class="pipe">03 · Replay attack + benign telemetry</div><div class="arrow">↓</div>
-          <div class="pipe">04 · Gate on precision / recall / FPR</div><div class="arrow">↓</div>
-          <div class="pipe">05 · Feed analyst dispositions back</div>
-        </div>
-      </div>
-    </aside>
-  </section>
-
-  <section class="grid4" aria-label="Portfolio summary">
-    <div class="kpi"><span>Release-ready rules</span><strong>{passing}/{len(runs)}</strong><small>current synthetic regression gate</small></div>
-    <div class="kpi"><span>Mean precision</span><strong>{_pct(avg_precision)}</strong><small>across checked-in detections</small></div>
-    <div class="kpi"><span>Mean recall</span><strong>{_pct(avg_recall)}</strong><small>against malicious replay fixtures</small></div>
-    <div class="kpi"><span>ATT&amp;CK coverage</span><strong>{len(coverage)}</strong><small>techniques with mapped detections</small></div>
-  </section>
-
-  <section class="section" id="scorecard">
-    <div class="section-head"><div><div class="kicker">Detection health</div><h2>Release scorecard</h2></div><p>{len(EVENTS)} deterministic replay events: {malicious} malicious scenarios and {benign} benign / hard-negative events.</p></div>
-    <div class="toolbar">
-      <button class="filter active" onclick="filterRules('all',this)">All detections</button>
-      <button class="filter" onclick="filterRules('pass',this)">Passing</button>
-      <button class="filter" onclick="filterRules('entra',this)">Entra</button>
-      <button class="filter" onclick="filterRules('endpoint',this)">Endpoint</button>
-    </div>
-    <div class="rules" id="rule-list">{rule_cards}</div>
-  </section>
-
-  <section class="section two-col" id="coverage">
-    <div class="panel"><div class="kicker">Coverage</div><h3>MITRE ATT&amp;CK map</h3>{attack_rows}</div>
-    <div class="panel"><div class="kicker">Quality gate</div><h3>What blocks a release?</h3>
-      <div class="coverage-row"><span>Precision</span><span>≥ 80%</span><span>controls analyst noise</span></div>
-      <div class="coverage-row"><span>Recall</span><span>≥ 80%</span><span>protects against missed malicious replay</span></div>
-      <div class="coverage-row"><span>FPR</span><span>≤ 10%</span><span>guards benign hard negatives</span></div>
-      <div class="coverage-row"><span>CI</span><span>3.10–3.12</span><span>tests · validate · evaluate · compile</span></div>
-    </div>
-  </section>
-
-  <section class="section" id="feedback">
-    <div class="section-head"><div><div class="kicker">Operational loop</div><h2>Analyst feedback</h2></div><p>Human dispositions remain separate from synthetic ground truth, so production feedback can tune detections without contaminating the offline benchmark.</p></div>
-    <div class="table-wrap"><table><thead><tr><th>Detection</th><th>Reviewed</th><th>True positive</th><th>Benign</th><th>Analyst precision</th><th>Common benign reason</th></tr></thead><tbody>{_feedback_rows()}</tbody></table></div>
-  </section>
-
-  <section class="section">
-    <div class="boundary"><strong>Evaluation boundary.</strong> All checked-in telemetry, identities, applications, commands, URLs, and labels are synthetic. These measurements demonstrate detection-engineering methodology and regression behavior; they are not claims of production efficacy.</div>
-  </section>
-
-  <footer class="footer"><span>DetectionForge · detection engineering as code</span><span><a href="/rules">JSON scorecard</a> · <a href="/coverage">coverage API</a> · <a href="/docs">OpenAPI</a></span></footer>
-</div>
-<script>
-function filterRules(filter, button) {
-  document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
-  button.classList.add('active');
-  document.querySelectorAll('.rule-card').forEach(card => {
-    const gate = card.dataset.gate;
-    const surface = card.dataset.surface.toLowerCase();
-    const show = filter === 'all' || gate === filter || surface.includes(filter);
-    card.style.display = show ? '' : 'none';
-  });
-}
-</script>
-</body></html>"""
+    replacements = {
+        "__PASSING__": str(passing),
+        "__RULE_COUNT__": str(len(runs)),
+        "__AVG_PRECISION__": _pct(avg_precision),
+        "__AVG_RECALL__": _pct(avg_recall),
+        "__COVERAGE_COUNT__": str(len(coverage)),
+        "__EVENT_COUNT__": str(len(EVENTS)),
+        "__MALICIOUS__": str(malicious),
+        "__BENIGN__": str(benign),
+        "__RULE_CARDS__": rule_cards,
+        "__COVERAGE_ROWS__": coverage_rows,
+        "__FEEDBACK_ROWS__": _feedback_rows(),
+    }
+    page = HTML_TEMPLATE
+    for marker, value in replacements.items():
+        page = page.replace(marker, value)
+    return page
 
 
 @app.get("/healthz")
