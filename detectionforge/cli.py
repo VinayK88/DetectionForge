@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .compiler import compile_kql
 from .coverage import attack_coverage
+from .ml import ml_report
 from .replay import evaluate_rule, load_events
 from .report import build_report
 from .rules import load_rule, load_rules
@@ -50,6 +51,17 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     return 0 if all(run.gate_passed for run in runs) else 2
 
 
+def cmd_ml_rank(args: argparse.Namespace) -> int:
+    rules = load_rules(args.detections)
+    events = load_events(args.events)
+    report = ml_report(events, rules)
+    rendered = json.dumps(report, indent=2, default=_json_default)
+    if args.output:
+        Path(args.output).write_text(rendered + "\n", encoding="utf-8")
+    print(rendered)
+    return 0
+
+
 def cmd_coverage(args: argparse.Namespace) -> int:
     print(json.dumps(attack_coverage(load_rules(args.detections)), indent=2))
     return 0
@@ -75,6 +87,12 @@ def main() -> None:
     evaluate.add_argument("--min-recall", type=float, default=0.80)
     evaluate.add_argument("--max-fpr", type=float, default=0.10)
     evaluate.set_defaults(func=cmd_evaluate)
+
+    ml_rank = sub.add_parser("ml-rank", help="train the synthetic alert-priority model and rank fired alerts")
+    ml_rank.add_argument("--detections", default="detections")
+    ml_rank.add_argument("--events", default="data/telemetry.jsonl")
+    ml_rank.add_argument("--output")
+    ml_rank.set_defaults(func=cmd_ml_rank)
 
     coverage = sub.add_parser("coverage")
     coverage.add_argument("--detections", default="detections")
